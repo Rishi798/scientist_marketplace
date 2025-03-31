@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Add Product</title>
+    <title>Product Details</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -18,7 +18,7 @@
             padding: 20px;
             border-radius: 5px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            max-width: 300px;
+            max-width: 400px;
             margin: auto;
         }
 
@@ -61,25 +61,25 @@
     </style>
 </head>
 <body>
-    <h2>Add New Product</h2>
+    <h2>Product Details</h2>
     <form method="POST">
         <label for="name">Name:</label>
-        <input type="text" id="name" name="name" required>
+        <input type="text" id="name" name="name" value="{{ product.name }}" required>
 
         <label for="price">Price:</label>
-        <input type="number" id="price" step="0.01" name="price" required>
+        <input type="number" id="price" step="0.01" name="price" value="{{ product.price }}" required>
 
         <label for="description">Description:</label>
-        <textarea id="description" name="description"></textarea>
+        <textarea id="description" name="description">{{ product.description }}</textarea>
 
         <label for="stock">Stock:</label>
-        <input type="number" id="stock" name="stock" required>
+        <input type="number" id="stock" name="stock" value="{{ product.stock }}" required>
 
         <label for="accreditation">Accreditation:</label>
-        <input type="text" id="accreditation" name="accreditation">
+        <input type="text" id="accreditation" name="accreditation" value="{{ product.accreditation }}">
 
-        <button type="submit">Add Product</button>
+        <button type="submit">Save Changes</button>
+        <a href="{{ url_for('supplier.dashboard') }}">Back to Dashboard</a>
     </form>
-    <a href="{{ url_for('supplier.dashboard') }}">Back to Dashboard</a>
 </body>
 </html>

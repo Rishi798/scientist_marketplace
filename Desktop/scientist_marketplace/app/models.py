@@ -28,11 +28,15 @@ class Product(db.Model):
     product_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)
     price = db.Column(db.Float, nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    stock = db.Column(db.Integer, nullable=True)
+    accreditation = db.Column(db.String(255), nullable=True)
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.supplier_id', ondelete="CASCADE"), nullable=False)
     
     orders = db.relationship('Order', backref='product', lazy=True)
     wishlist = db.relationship('Wishlist', backref='product', lazy=True)
     images = db.relationship('ProductImage', backref='product', lazy=True)
+
 
 class Order(db.Model):
     __tablename__ = 'orders'
