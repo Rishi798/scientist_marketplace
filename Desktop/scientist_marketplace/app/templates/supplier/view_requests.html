@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Service Requests</title>
+</head>
+<body>
+    <h2>Service Requests</h2>
+    <ul>
+        {% for request in requests %}
+            <li>
+                {{ request.user_name }} - {{ request.research_description }}
+                <a href="{{ url_for('supplier.respond_request', request_id=request.request_id) }}">Respond</a>
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

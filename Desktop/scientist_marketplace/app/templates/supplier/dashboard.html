@@ -44,29 +44,26 @@
             align-items: center;
         }
 
-        form {
-            display: inline;
-        }
-
-        .product-actions {
+        .service-actions {
             display: flex;
             gap: 8px;
         }
     </style>
 </head>
 <body>
-    <h2>Supplier Product Dashboard</h2>
-    <a href="{{ url_for('supplier.add_product') }}">Add Product</a>
+    <h2>Supplier Service Dashboard</h2>
+    <a href="{{ url_for('supplier.add_service') }}">Add Service</a>
     <ul>
-        {% for product in products %}
+        {% for service in services %}
             <li>
-                <span>{{ product.name }} - ${{ product.price }}</span>
-                <div class="product-actions">
-                    <a href="{{ url_for('supplier.product_details', product_id=product.product_id) }}">Details</a>
-                    <a href="{{ url_for('supplier.edit_product', product_id=product.product_id) }}">Edit</a>
-                    <form action="{{ url_for('supplier.delete_product', product_id=product.product_id) }}" method="POST" style="display:inline;">
+                <span>{{ service.service_name }} - {{ service.accreditation }}</span>
+                <div class="service-actions">
+                    <a href="{{ url_for('supplier.service_details', service_id=service.service_id) }}">Details</a>
+                    <a href="{{ url_for('supplier.edit_service', service_id=service.service_id) }}">Edit</a>
+                    <form action="{{ url_for('supplier.delete_service', service_id=service.service_id) }}" method="POST" style="display:inline;">
                         <button type="submit">Delete</button>
                     </form>
+                    <a href="{{ url_for('supplier.view_requests', service_id=service.service_id) }}">View Requests</a>
                 </div>
             </li>
         {% endfor %}

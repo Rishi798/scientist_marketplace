@@ -12,16 +12,26 @@ class User(db.Model):
     payments = db.relationship('Payment', backref='user', lazy=True)
     wishlist = db.relationship('Wishlist', backref='user', lazy=True)
     chat_logs = db.relationship('ChatLog', backref='user', lazy=True)
-    service_requests = db.relationship('ServiceRequest', backref='user', lazy=True)
 
 class Supplier(db.Model):
     __tablename__ = 'suppliers'
     supplier_id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150), nullable=False)
+    company_description = db.Column(db.Text, nullable=True)
     
     products = db.relationship('Product', backref='supplier', lazy=True)
-    services = db.relationship('Service', backref='supplier', lazy=True)
+    services = db.relationship('SupplierService', backref='supplier', lazy=True)
     service_responses = db.relationship('ServiceResponse', backref='supplier', lazy=True)
+
+class SupplierService(db.Model):
+    __tablename__ = 'supplier_services'
+    service_id = db.Column(db.Integer, primary_key=True)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.supplier_id', ondelete="CASCADE"), nullable=False)
+    service_name = db.Column(db.String(255), nullable=False)
+    service_description = db.Column(db.Text, nullable=False)
+    accreditation = db.Column(db.String(255), nullable=True)
+
+    requests = db.relationship('ServiceRequest', backref='service', lazy=True)
 
 class Product(db.Model):
     __tablename__ = 'products'
@@ -37,6 +47,24 @@ class Product(db.Model):
     wishlist = db.relationship('Wishlist', backref='product', lazy=True)
     images = db.relationship('ProductImage', backref='product', lazy=True)
 
+class ServiceRequest(db.Model):
+    __tablename__ = 'service_requests'
+    request_id = db.Column(db.Integer, primary_key=True)
+    service_id = db.Column(db.Integer, db.ForeignKey('supplier_services.service_id', ondelete="CASCADE"), nullable=False)
+    user_name = db.Column(db.String(100), nullable=False)
+    phone_number = db.Column(db.String(20), nullable=False)
+    email = db.Column(db.String(120), nullable=False)
+    research_description = db.Column(db.Text, nullable=False)
+
+    responses = db.relationship('ServiceResponse', backref='service_request', lazy=True)
+
+class ServiceResponse(db.Model):
+    __tablename__ = 'service_responses'
+    response_id = db.Column(db.Integer, primary_key=True)
+    request_id = db.Column(db.Integer, db.ForeignKey('service_requests.request_id', ondelete="CASCADE"), nullable=False)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.supplier_id', ondelete="CASCADE"), nullable=False)
+    response_details = db.Column(db.Text, nullable=False)
+    price = db.Column(db.Float, nullable=True)
 
 class Order(db.Model):
     __tablename__ = 'orders'
@@ -58,29 +86,7 @@ class Booking(db.Model):
     __tablename__ = 'bookings'
     booking_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id', ondelete="CASCADE"), nullable=False)
-    service_id = db.Column(db.Integer, db.ForeignKey('services.service_id', ondelete="CASCADE"), nullable=False)
-
-class Service(db.Model):
-    __tablename__ = 'services'
-    service_id = db.Column(db.Integer, primary_key=True)
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.supplier_id', ondelete="CASCADE"), nullable=False)
-
-    bookings = db.relationship('Booking', backref='service', lazy=True)
-    service_requests = db.relationship('ServiceRequest', backref='service', lazy=True)
-
-class ServiceRequest(db.Model):
-    __tablename__ = 'service_requests'
-    service_request_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id', ondelete="CASCADE"), nullable=False)
-    service_id = db.Column(db.Integer, db.ForeignKey('services.service_id', ondelete="CASCADE"), nullable=False)
-
-    service_responses = db.relationship('ServiceResponse', backref='service_request', lazy=True)
-
-class ServiceResponse(db.Model):
-    __tablename__ = 'service_responses'
-    service_response_id = db.Column(db.Integer, primary_key=True)
-    service_request_id = db.Column(db.Integer, db.ForeignKey('service_requests.service_request_id', ondelete="CASCADE"), nullable=False)
-    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.supplier_id', ondelete="CASCADE"), nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey('supplier_services.service_id', ondelete="CASCADE"), nullable=False)
 
 class Wishlist(db.Model):
     __tablename__ = 'wishlist'

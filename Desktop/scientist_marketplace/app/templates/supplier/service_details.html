@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Service Details</title>
+</head>
+<body>
+    <h2>Service Details</h2>
+    <p><strong>Service Name:</strong> {{ service.service_name }}</p>
+    <p><strong>Description:</strong> {{ service.service_description }}</p>
+    <p><strong>Accreditation:</strong> {{ service.accreditation }}</p>
+    <a href="{{ url_for('supplier.dashboard') }}">Back to Dashboard</a>
+</body>
+</html>

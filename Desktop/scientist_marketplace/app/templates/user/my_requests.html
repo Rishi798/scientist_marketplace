@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Service Requests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .response {
+            color: green;
+        }
+
+        .rejected {
+            color: red;
+        }
+
+        a {
+            text-decoration: none;
+            color: #007bff;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h2>My Service Requests</h2>
+    <table>
+        <tr>
+            <th>Service Name</th>
+            <th>Research Description</th>
+            <th>Status</th>
+            <th>Response</th>
+            <th>Price</th>
+        </tr>
+        {% for req in service_requests %}
+        <tr>
+            <td>{{ req.service.service_name }}</td>
+            <td>{{ req.research_description }}</td>
+            {% if req.request_id in responses %}
+                {% if responses[req.request_id].response_details == "Rejected" %}
+                    <td class="rejected">Rejected</td>
+                    <td>N/A</td>
+                    <td>N/A</td>
+                {% else %}
+                    <td class="response">Approved</td>
+                    <td>{{ responses[req.request_id].response_details }}</td>
+                    <td>${{ responses[req.request_id].price }}</td>
+                {% endif %}
+            {% else %}
+                <td>No Response</td>
+                <td>N/A</td>
+                <td>N/A</td>
+            {% endif %}
+        </tr>
+        {% endfor %}
+    </table>
+    <a href="{{ url_for('user.service_list') }}">Back to Services</a>
+</body>
+</html>

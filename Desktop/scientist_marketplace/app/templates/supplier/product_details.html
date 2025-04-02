@@ -11,6 +11,7 @@
 
         h2 {
             color: #333;
+            text-align: center;
         }
 
         form {
@@ -19,7 +20,7 @@
             border-radius: 5px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             max-width: 400px;
-            margin: auto;
+            margin: 20px auto;
         }
 
         label {
@@ -58,6 +59,10 @@
         a:hover {
             text-decoration: underline;
         }
+
+        .product-info {
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -77,6 +82,10 @@
 
         <label for="accreditation">Accreditation:</label>
         <input type="text" id="accreditation" name="accreditation" value="{{ product.accreditation }}">
+
+        <div class="product-info">
+            <strong>Supplier ID:</strong> {{ product.supplier_id }}
+        </div>
 
         <button type="submit">Save Changes</button>
         <a href="{{ url_for('supplier.dashboard') }}">Back to Dashboard</a>

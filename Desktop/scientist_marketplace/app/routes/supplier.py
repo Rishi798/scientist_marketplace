@@ -1,80 +1,124 @@
 from flask import Blueprint, request, render_template, redirect, url_for, flash
 from app.extensions import db
-from app.models import Product, Supplier
+from app.models import SupplierService, ServiceRequest, ServiceResponse
 
 # Define the supplier blueprint
 supplier_bp = Blueprint("supplier", __name__)
 
-# Supplier dashboard to view all products
+# Supplier dashboard to view all services
 @supplier_bp.route('/dashboard')
 def dashboard():
-    products = Product.query.all()
-    return render_template('supplier/dashboard.html', products=products)
+    services = SupplierService.query.all()
+    return render_template('supplier/dashboard.html', services=services)
 
-# Add a new product
+# Add a new service
 @supplier_bp.route('/add', methods=['GET', 'POST'])
-def add_product():
+def add_service():
     if request.method == 'POST':
-        name = request.form['name']
-        price = float(request.form['price'])
-        description = request.form.get('description', '')
-        stock = int(request.form.get('stock', 0))
+        service_name = request.form['service_name']
+        service_description = request.form.get('service_description', '')
         accreditation = request.form.get('accreditation', '')
 
         # Placeholder for logged-in supplier
         supplier_id = 1  
 
-        new_product = Product(
-            name=name, 
-            price=price, 
-            description=description, 
-            stock=stock, 
+        new_service = SupplierService(
+            service_name=service_name, 
+            service_description=service_description, 
             accreditation=accreditation, 
             supplier_id=supplier_id
         )
-        db.session.add(new_product)
+        db.session.add(new_service)
         db.session.commit()
-        flash('Product added successfully!', 'success')
+        flash('Service added successfully!', 'success')
         return redirect(url_for('supplier.dashboard'))
 
-    return render_template('supplier/add_product.html')
+    return render_template('supplier/add_service.html')
 
-# View and update product details
-@supplier_bp.route('/product/<int:product_id>', methods=['GET', 'POST'])
-def product_details(product_id):
-    product = Product.query.get_or_404(product_id)
+# View and update service details
+@supplier_bp.route('/service/<int:service_id>', methods=['GET', 'POST'])
+def service_details(service_id):
+    service = SupplierService.query.get_or_404(service_id)
 
     if request.method == 'POST':
-        product.name = request.form['name']
-        product.price = float(request.form['price'])
-        product.description = request.form.get('description', '')
-        product.stock = int(request.form.get('stock', 0))
-        product.accreditation = request.form.get('accreditation', '')
+        service.service_name = request.form['service_name']
+        service.service_description = request.form.get('service_description', '')
+        service.accreditation = request.form.get('accreditation', '')
         db.session.commit()
-        flash('Product details updated successfully!', 'success')
+        flash('Service details updated successfully!', 'success')
         return redirect(url_for('supplier.dashboard'))
 
-    return render_template('supplier/product_details.html', product=product)
+    return render_template('supplier/service_details.html', service=service)
 
-# Edit an existing product (minimal fields)
-@supplier_bp.route('/edit/<int:product_id>', methods=['GET', 'POST'])
-def edit_product(product_id):
-    product = Product.query.get_or_404(product_id)
+# Edit an existing service
+@supplier_bp.route('/edit/<int:service_id>', methods=['GET', 'POST'])
+def edit_service(service_id):
+    service = SupplierService.query.get_or_404(service_id)
 
     if request.method == 'POST':
-        product.name = request.form['name']
-        product.price = float(request.form['price'])
+        service.service_name = request.form['service_name']
+        service.service_description = request.form.get('service_description', '')
+        service.accreditation = request.form.get('accreditation', '')
         db.session.commit()
-        flash('Product updated successfully!', 'success')
+        flash('Service updated successfully!', 'success')
         return redirect(url_for('supplier.dashboard'))
 
-    return render_template('supplier/edit_product.html', product=product)
+    return render_template('supplier/edit_service.html', service=service)
 
-# Delete a product
-@supplier_bp.route('/delete/<int:product_id>', methods=['POST'])
-def delete_product(product_id):
-    product = Product.query.get_or_404(product_id)
-    db.session.delete(product)
+# Delete a service along with related requests and responses
+@supplier_bp.route('/delete/<int:service_id>', methods=['POST'])
+def delete_service(service_id):
+    service = SupplierService.query.get_or_404(service_id)
+
+    associated_requests = ServiceRequest.query.filter_by(service_id=service_id).all()
+
+    for req in associated_requests:
+        associated_responses = ServiceResponse.query.filter_by(request_id=req.request_id).all()
+        for resp in associated_responses:
+            db.session.delete(resp)
+        db.session.delete(req)
+
+    db.session.delete(service)
     db.session.commit()
-    flash('Product deleted successfully!', 'success')
+    flash('Service and related requests/responses deleted successfully!', 'success')
     return redirect(url_for('supplier.dashboard'))
+
+# View service requests for a specific service
+@supplier_bp.route('/service_requests/<int:service_id>')
+def view_requests(service_id):
+    requests = ServiceRequest.query.filter_by(service_id=service_id).all()
+    return render_template('supplier/view_requests.html', requests=requests, service_id=service_id)
+
+# Respond to a service request with an option to reject
+@supplier_bp.route('/respond/<int:request_id>', methods=['GET', 'POST'])
+def respond_request(request_id):
+    service_request = ServiceRequest.query.get_or_404(request_id)
+
+    if request.method == 'POST':
+        if 'reject' in request.form:
+            new_response = ServiceResponse(
+                request_id=request_id,
+                supplier_id=1,  
+                response_details="Rejected",
+                price=None
+            )
+            db.session.add(new_response)
+            db.session.commit()
+            flash('Request rejected successfully!', 'warning')
+            return redirect(url_for('supplier.dashboard'))
+
+        response_details = request.form['response_details']
+        price = float(request.form.get('price', 0))
+
+        new_response = ServiceResponse(
+            request_id=request_id,
+            supplier_id=1,  
+            response_details=response_details,
+            price=price
+        )
+        db.session.add(new_response)
+        db.session.commit()
+        flash('Response sent successfully!', 'success')
+        return redirect(url_for('supplier.dashboard'))
+
+    return render_template('supplier/respond_request.html', request=service_request)

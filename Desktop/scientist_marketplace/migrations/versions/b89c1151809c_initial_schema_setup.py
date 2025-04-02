@@ -1,8 +1,8 @@
-"""Initial schema fixed
+"""Initial schema setup
 
-Revision ID: 88e860890ee4
+Revision ID: b89c1151809c
 Revises: 
-Create Date: 2025-03-28 16:19:48.210397
+Create Date: 2025-04-02 12:34:53.767179
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '88e860890ee4'
+revision = 'b89c1151809c'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -21,6 +21,7 @@ def upgrade():
     op.create_table('suppliers',
     sa.Column('supplier_id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=150), nullable=False),
+    sa.Column('company_description', sa.Text(), nullable=True),
     sa.PrimaryKeyConstraint('supplier_id')
     )
     op.create_table('users',
@@ -43,13 +44,19 @@ def upgrade():
     sa.Column('product_id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=255), nullable=False),
     sa.Column('price', sa.Float(), nullable=False),
+    sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('stock', sa.Integer(), nullable=True),
+    sa.Column('accreditation', sa.String(length=255), nullable=True),
     sa.Column('supplier_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['supplier_id'], ['suppliers.supplier_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('product_id')
     )
-    op.create_table('services',
+    op.create_table('supplier_services',
     sa.Column('service_id', sa.Integer(), nullable=False),
     sa.Column('supplier_id', sa.Integer(), nullable=False),
+    sa.Column('service_name', sa.String(length=255), nullable=False),
+    sa.Column('service_description', sa.Text(), nullable=False),
+    sa.Column('accreditation', sa.String(length=255), nullable=True),
     sa.ForeignKeyConstraint(['supplier_id'], ['suppliers.supplier_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('service_id')
     )
@@ -57,7 +64,7 @@ def upgrade():
     sa.Column('booking_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('service_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['service_id'], ['services.service_id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['service_id'], ['supplier_services.service_id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('booking_id')
     )
@@ -77,12 +84,14 @@ def upgrade():
     sa.PrimaryKeyConstraint('image_id')
     )
     op.create_table('service_requests',
-    sa.Column('service_request_id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('request_id', sa.Integer(), nullable=False),
     sa.Column('service_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['service_id'], ['services.service_id'], ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('service_request_id')
+    sa.Column('user_name', sa.String(length=100), nullable=False),
+    sa.Column('phone_number', sa.String(length=20), nullable=False),
+    sa.Column('email', sa.String(length=120), nullable=False),
+    sa.Column('research_description', sa.Text(), nullable=False),
+    sa.ForeignKeyConstraint(['service_id'], ['supplier_services.service_id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('request_id')
     )
     op.create_table('wishlist',
     sa.Column('wishlist_id', sa.Integer(), nullable=False),
@@ -103,12 +112,14 @@ def upgrade():
     sa.PrimaryKeyConstraint('payment_id')
     )
     op.create_table('service_responses',
-    sa.Column('service_response_id', sa.Integer(), nullable=False),
-    sa.Column('service_request_id', sa.Integer(), nullable=False),
+    sa.Column('response_id', sa.Integer(), nullable=False),
+    sa.Column('request_id', sa.Integer(), nullable=False),
     sa.Column('supplier_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['service_request_id'], ['service_requests.service_request_id'], ondelete='CASCADE'),
+    sa.Column('response_details', sa.Text(), nullable=False),
+    sa.Column('price', sa.Float(), nullable=True),
+    sa.ForeignKeyConstraint(['request_id'], ['service_requests.request_id'], ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['supplier_id'], ['suppliers.supplier_id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('service_response_id')
+    sa.PrimaryKeyConstraint('response_id')
     )
     op.create_table('tracking_updates',
     sa.Column('update_id', sa.Integer(), nullable=False),
@@ -130,7 +141,7 @@ def downgrade():
     op.drop_table('product_images')
     op.drop_table('orders')
     op.drop_table('bookings')
-    op.drop_table('services')
+    op.drop_table('supplier_services')
     op.drop_table('products')
     op.drop_table('chat_logs')
     op.drop_table('users')

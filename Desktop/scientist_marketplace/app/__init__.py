@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, redirect, url_for
 from app.extensions import db, migrate
 from config import Config  # This pulls in .env settings
 
@@ -17,5 +17,10 @@ def create_app():
 
     app.register_blueprint(user_bp, url_prefix="/user")
     app.register_blueprint(supplier_bp, url_prefix="/supplier")
+
+    # Homepage route for easier navigation
+    @app.route('/')
+    def home():
+        return redirect(url_for('user.service_list'))
 
     return app
