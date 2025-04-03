@@ -37,28 +37,6 @@
             background-color: #0056b3;
         }
 
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        li {
-            background-color: #fff;
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        a {
-            text-decoration: none;
-            color: #007bff;
-        }
-
-        a:hover {
-            text-decoration: underline;
-        }
-
         #chatbot {
             margin-top: 20px;
             padding: 10px;
@@ -110,18 +88,6 @@
         <button type="submit">Search</button>
     </form>
 
-    <ul>
-        {% for service in services %}
-            <li>
-                <a href="{{ url_for('user.service_details', service_id=service.service_id) }}">{{ service.service_name }}</a>
-                - {{ service.service_description }}
-            </li>
-        {% endfor %}
-        {% if services|length == 0 %}
-            <li>No services found.</li>
-        {% endif %}
-    </ul>
-
     <h3>AI-Assisted Service Finder</h3>
     <div id="chatbot">
         <div id="chatbox"></div>
@@ -153,17 +119,7 @@
                 });
 
                 const result = await response.json();
-                if (result.error) {
-                    appendMessage("AI", "Error: " + result.error);
-                } else if (result.services && result.services.length > 0) {
-                    let responseText = "Recommended Services:<br>";
-                    result.services.forEach(service => {
-                        responseText += `<strong>${service.name}</strong>: ${service.description}<br>`;
-                    });
-                    appendMessage("AI", responseText);
-                } else {
-                    appendMessage("AI", "No matching services found.");
-                }
+                appendMessage("AI", result.ai_response);
             } catch (error) {
                 appendMessage("AI", "Error: " + error.message);
             }

@@ -4,6 +4,7 @@ from app.models import SupplierService, ServiceRequest, ServiceResponse
 from groq import Groq
 import os
 from dotenv import load_dotenv
+import re
 
 # Load environment variables
 load_dotenv()
@@ -46,8 +47,8 @@ def ai_search():
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an AI assistant that recommends scientific research services based on user input. "
-                               "Your responses should directly map to the available services in the database."
+                    "content": "You are an AI assistant that recommends research services based on user input. "
+                               "Your responses should be relevant to scientific services available in the database."
                 },
                 {
                     "role": "user",
@@ -68,31 +69,33 @@ def ai_search():
         print(f"AI Response: {ai_response}")
 
         # Extract potential keywords from AI response
-        keywords = [word.strip().lower() for word in ai_response.split()]
+        keywords = re.findall(r'\b\w+\b', ai_response)
+        keywords = [kw.lower() for kw in keywords if len(kw) > 2]
 
-        # Search services based on extracted keywords from the AI response
-        services = SupplierService.query.filter(
-            db.or_(
-                *[SupplierService.service_name.ilike(f"%{keyword}%") for keyword in keywords],
-                *[SupplierService.service_description.ilike(f"%{keyword}%") for keyword in keywords]
+        # Query the database using extracted keywords
+        query = db.session.query(SupplierService)
+        for keyword in keywords:
+            query = query.filter(
+                (SupplierService.service_name.ilike(f"%{keyword}%")) |
+                (SupplierService.service_description.ilike(f"%{keyword}%"))
             )
-        ).all()
+        services = query.all()
 
         # Format response
-        response_data = [
-            {
-                "id": service.service_id,
-                "name": service.service_name,
-                "description": service.service_description,
-                "accreditation": service.accreditation
-            }
-            for service in services
-        ]
+        response_data = {
+            "ai_response": ai_response,
+            "services": [
+                {
+                    "id": service.service_id,
+                    "name": service.service_name,
+                    "description": service.service_description,
+                    "accreditation": service.accreditation
+                }
+                for service in services
+            ]
+        }
 
-        if not response_data:
-            return jsonify({"message": "No matching services found based on the AI response"}), 200
-
-        return jsonify({"services": response_data})
+        return jsonify(response_data)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
