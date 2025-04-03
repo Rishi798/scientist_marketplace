@@ -1,6 +1,18 @@
-from flask import Blueprint, request, render_template, redirect, url_for, flash
+from flask import Blueprint, request, render_template, redirect, url_for, flash, jsonify
 from app.extensions import db
 from app.models import SupplierService, ServiceRequest, ServiceResponse
+from groq import Groq
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Initialize Groq client
+api_key = os.environ.get("GROQ_API_KEY")
+if not api_key:
+    raise ValueError("GROQ_API_KEY not found in environment variables.")
+client = Groq(api_key=api_key)
 
 # Define the user blueprint
 user_bp = Blueprint("user", __name__)
@@ -20,6 +32,70 @@ def service_list():
         services = SupplierService.query.all()
 
     return render_template('user/service_list.html', services=services, query=query)
+
+# AI-powered service recommendation using Groq API
+@user_bp.route('/ai_search', methods=['POST'])
+def ai_search():
+    user_input = request.json.get('query')
+    if not user_input:
+        return jsonify({"error": "No query provided"}), 400
+
+    try:
+        # Groq API chat completion
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an AI assistant that recommends scientific research services based on user input. "
+                               "Your responses should directly map to the available services in the database."
+                },
+                {
+                    "role": "user",
+                    "content": user_input,
+                }
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.5,
+            max_completion_tokens=1024,
+            top_p=1,
+            stream=False
+        )
+
+        # Extract the AI response
+        ai_response = chat_completion.choices[0].message.content.strip()
+
+        # Log the AI response
+        print(f"AI Response: {ai_response}")
+
+        # Extract potential keywords from AI response
+        keywords = [word.strip().lower() for word in ai_response.split()]
+
+        # Search services based on extracted keywords from the AI response
+        services = SupplierService.query.filter(
+            db.or_(
+                *[SupplierService.service_name.ilike(f"%{keyword}%") for keyword in keywords],
+                *[SupplierService.service_description.ilike(f"%{keyword}%") for keyword in keywords]
+            )
+        ).all()
+
+        # Format response
+        response_data = [
+            {
+                "id": service.service_id,
+                "name": service.service_name,
+                "description": service.service_description,
+                "accreditation": service.accreditation
+            }
+            for service in services
+        ]
+
+        if not response_data:
+            return jsonify({"message": "No matching services found based on the AI response"}), 200
+
+        return jsonify({"services": response_data})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # User service details page
 @user_bp.route('/services/<int:service_id>', methods=['GET'])
