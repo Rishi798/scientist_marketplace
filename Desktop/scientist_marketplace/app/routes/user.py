@@ -4,7 +4,6 @@ from app.models import SupplierService, ServiceRequest, ServiceResponse
 from groq import Groq
 import os
 from dotenv import load_dotenv
-import re
 
 # Load environment variables
 load_dotenv()
@@ -42,20 +41,25 @@ def ai_search():
         return jsonify({"error": "No query provided"}), 400
 
     try:
+        # Fetch all available services from the database
+        all_services = SupplierService.query.all()
+        service_names = [service.service_name for service in all_services]
+
+        # Create a prompt for the AI to choose the best matching services
+        service_list_str = "\n".join(service_names)
+        prompt = (
+            f"You are an AI assistant specializing in recommending scientific research services. "
+            f"Here is a list of available services:\n{service_list_str}\n"
+            f"Based on the user's input, recommend the most relevant services from the list."
+        )
+
         # Groq API chat completion
         chat_completion = client.chat.completions.create(
             messages=[
-                {
-                    "role": "system",
-                    "content": "You are an AI assistant that recommends research services based on user input. "
-                               "Your responses should be relevant to scientific services available in the database."
-                },
-                {
-                    "role": "user",
-                    "content": user_input,
-                }
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": user_input}
             ],
-            model="llama-3.3-70b-versatile",
+            model="deepseek-r1-distill-llama-70b",
             temperature=0.5,
             max_completion_tokens=1024,
             top_p=1,
@@ -68,34 +72,26 @@ def ai_search():
         # Log the AI response
         print(f"AI Response: {ai_response}")
 
-        # Extract potential keywords from AI response
-        keywords = re.findall(r'\b\w+\b', ai_response)
-        keywords = [kw.lower() for kw in keywords if len(kw) > 2]
-
-        # Query the database using extracted keywords
-        query = db.session.query(SupplierService)
-        for keyword in keywords:
-            query = query.filter(
-                (SupplierService.service_name.ilike(f"%{keyword}%")) |
-                (SupplierService.service_description.ilike(f"%{keyword}%"))
-            )
-        services = query.all()
+        # Identify services from AI response
+        recommended_services = [
+            service for service in all_services if service.service_name in ai_response
+        ]
 
         # Format response
-        response_data = {
-            "ai_response": ai_response,
-            "services": [
-                {
-                    "id": service.service_id,
-                    "name": service.service_name,
-                    "description": service.service_description,
-                    "accreditation": service.accreditation
-                }
-                for service in services
-            ]
-        }
+        response_data = [
+            {
+                "id": service.service_id,
+                "name": service.service_name,
+                "description": service.service_description,
+                "accreditation": service.accreditation
+            }
+            for service in recommended_services
+        ]
 
-        return jsonify(response_data)
+        if not response_data:
+            return jsonify({"message": "No matching services found based on the AI response"}), 200
+
+        return jsonify({"response": ai_response, "services": response_data})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

@@ -37,12 +37,36 @@
             background-color: #0056b3;
         }
 
+        ul, ol {
+            padding: 0;
+            margin: 0;
+            list-style-position: inside;
+        }
+
+        li {
+            background-color: #fff;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        a {
+            text-decoration: none;
+            color: #007bff;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
         #chatbot {
             margin-top: 20px;
             padding: 10px;
             background-color: #e9e9e9;
             border-radius: 4px;
-            max-width: 400px;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         #chatbox {
@@ -54,6 +78,7 @@
             padding: 10px;
             border-radius: 4px;
             margin-bottom: 10px;
+            box-sizing: border-box;
         }
 
         #user-input {
@@ -62,10 +87,14 @@
             margin-top: 5px;
             border-radius: 4px;
             border: 1px solid #ddd;
+            box-sizing: border-box;
         }
 
         .message {
             margin: 5px 0;
+            padding: 5px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
         }
 
         .user {
@@ -88,6 +117,18 @@
         <button type="submit">Search</button>
     </form>
 
+    <ul>
+        {% for service in services %}
+            <li>
+                <a href="{{ url_for('user.service_details', service_id=service.service_id) }}">{{ service.service_name }}</a>
+                - {{ service.service_description }}
+            </li>
+        {% endfor %}
+        {% if services|length == 0 %}
+            <li>No services found.</li>
+        {% endif %}
+    </ul>
+
     <h3>AI-Assisted Service Finder</h3>
     <div id="chatbot">
         <div id="chatbox"></div>
@@ -102,6 +143,10 @@
             msgDiv.innerHTML = `<span class="${sender}">${sender}: </span>${message}`;
             chatbox.appendChild(msgDiv);
             chatbox.scrollTop = chatbox.scrollHeight;
+        }
+
+        function formatAsParagraph(text) {
+            return `<p>${text.replace(/\n/g, "<br>")}</p>`;
         }
 
         async function sendMessage() {
@@ -119,7 +164,22 @@
                 });
 
                 const result = await response.json();
-                appendMessage("AI", result.ai_response);
+                if (result.error) {
+                    appendMessage("AI", "Error: " + result.error);
+                } else if (result.response) {
+                    const formattedResponse = formatAsParagraph(result.response);
+                    appendMessage("AI", formattedResponse);
+                } 
+                if (result.services && result.services.length > 0) {
+                    let responseText = "Recommended Services:<br><ol>";
+                    result.services.forEach((service, index) => {
+                        responseText += `<li><strong>${service.name}</strong>: ${service.description || "No description available"}</li>`;
+                    });
+                    responseText += '</ol>';
+                    appendMessage("AI", responseText);
+                } else {
+                    appendMessage("AI", "No matching services found.");
+                }
             } catch (error) {
                 appendMessage("AI", "Error: " + error.message);
             }
