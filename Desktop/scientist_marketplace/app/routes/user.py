@@ -33,7 +33,7 @@ def service_list():
 
     return render_template('user/service_list.html', services=services, query=query)
 
-# AI-powered service recommendation using Groq API
+# Enhanced AI-powered service recommendation and research assistant
 @user_bp.route('/ai_search', methods=['POST'])
 def ai_search():
     user_input = request.json.get('query')
@@ -45,13 +45,16 @@ def ai_search():
         all_services = SupplierService.query.all()
         service_names = [service.service_name for service in all_services]
 
-        # Create a prompt for the AI to choose the best matching services
+        # Create a dynamic prompt for the AI to choose the best matching services or provide research insights
         service_list_str = "\n".join(service_names)
         prompt = (
-            f"You are an AI assistant specializing in recommending scientific research services. "
+            f"You are an AI research assistant specializing in scientific research and service recommendations. "
             f"Here is a list of available services:\n{service_list_str}\n"
-            f"Based on the user's input, recommend the most relevant services from this list. "
-            f"Make sure to only choose from the provided services."
+            f"User Query: {user_input}\n"
+            f"Your task:\n"
+            f"1. Provide research insights or solutions if the query requires analytical thinking or problem-solving.\n"
+            f"2. If the query is related to research services, recommend the most relevant services from the list.\n"
+            f"3. Only include services that match the context of the query and exist in the provided list."
         )
 
         # Groq API chat completion
@@ -71,11 +74,12 @@ def ai_search():
         ai_response = chat_completion.choices[0].message.content.strip()
         print(f"AI Response: {ai_response}")
 
-        # Extract recommended services from the structured AI response
+        # Extract recommended services and research insights from the AI response
         recommended_services = []
         unmatched_services = []
+        research_insights = []
+
         for line in ai_response.splitlines():
-            # Match lines that are formatted as bullet points or numbered lists
             line = line.strip("-•1234567890. ").lower()
             matched = False
             for service_name in service_names:
@@ -87,7 +91,7 @@ def ai_search():
                     matched = True
                     break
             if not matched:
-                unmatched_services.append(line)
+                research_insights.append(line)
 
         # Deduplicate the list by service ID
         recommended_services = list({service.service_id: service for service in recommended_services}.values())
@@ -105,20 +109,20 @@ def ai_search():
 
         response_message = {
             "response": ai_response,
+            "research_insights": "\n".join(research_insights),
             "services": response_data
         }
 
         if unmatched_services:
             response_message["unmatched"] = f"Some recommended services were not found in the database: {', '.join(unmatched_services)}"
 
-        if not response_data:
-            return jsonify({"message": "No matching services found based on the AI response"}), 200
+        if not response_data and not research_insights:
+            return jsonify({"message": "No relevant research insights or matching services found."}), 200
 
         return jsonify(response_message)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 # User service details page
 @user_bp.route('/services/<int:service_id>', methods=['GET'])
