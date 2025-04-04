@@ -50,7 +50,8 @@ def ai_search():
         prompt = (
             f"You are an AI assistant specializing in recommending scientific research services. "
             f"Here is a list of available services:\n{service_list_str}\n"
-            f"Based on the user's input, recommend the most relevant services from the list."
+            f"Based on the user's input, recommend the most relevant services from this list. "
+            f"Make sure to only choose from the provided services."
         )
 
         # Groq API chat completion
@@ -68,16 +69,30 @@ def ai_search():
 
         # Extract the AI response
         ai_response = chat_completion.choices[0].message.content.strip()
-
-        # Log the AI response
         print(f"AI Response: {ai_response}")
 
-        # Identify services from AI response
-        recommended_services = [
-            service for service in all_services if service.service_name in ai_response
-        ]
+        # Extract recommended services from the structured AI response
+        recommended_services = []
+        unmatched_services = []
+        for line in ai_response.splitlines():
+            # Match lines that are formatted as bullet points or numbered lists
+            line = line.strip("-•1234567890. ").lower()
+            matched = False
+            for service_name in service_names:
+                if service_name.lower() in line:
+                    matching_services = [
+                        service for service in all_services if service.service_name.lower() == service_name.lower()
+                    ]
+                    recommended_services.extend(matching_services)
+                    matched = True
+                    break
+            if not matched:
+                unmatched_services.append(line)
 
-        # Format response
+        # Deduplicate the list by service ID
+        recommended_services = list({service.service_id: service for service in recommended_services}.values())
+
+        # Format response for matched and unmatched services
         response_data = [
             {
                 "id": service.service_id,
@@ -88,13 +103,22 @@ def ai_search():
             for service in recommended_services
         ]
 
+        response_message = {
+            "response": ai_response,
+            "services": response_data
+        }
+
+        if unmatched_services:
+            response_message["unmatched"] = f"Some recommended services were not found in the database: {', '.join(unmatched_services)}"
+
         if not response_data:
             return jsonify({"message": "No matching services found based on the AI response"}), 200
 
-        return jsonify({"response": ai_response, "services": response_data})
+        return jsonify(response_message)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 # User service details page
 @user_bp.route('/services/<int:service_id>', methods=['GET'])
